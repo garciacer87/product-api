@@ -32,7 +32,14 @@ func NewServer() Server {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/health", srv.healthHandler).Methods("GET")
+	r.HandleFunc("/health", healthHandler).Methods(http.MethodGet)
+
+	product := r.PathPrefix("/product").Subrouter()
+	product.HandleFunc("", create).Methods(http.MethodPost)
+	product.HandleFunc("", getAll).Methods(http.MethodGet)
+	product.HandleFunc("/{sku}", getAll).Methods(http.MethodGet)
+	product.HandleFunc("/{sku}", update).Methods(http.MethodPatch)
+	product.HandleFunc("/{sku}", delete).Methods(http.MethodDelete)
 
 	srv.httpServer = &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%v", port),
@@ -46,4 +53,8 @@ func NewServer() Server {
 func (s *server) ListenAndServe() error {
 	logrus.Printf("serving on port %s\n", s.httpPort)
 	return s.httpServer.ListenAndServe()
+}
+
+func healthHandler(w http.ResponseWriter, _ *http.Request) {
+	writeResponse(w, http.StatusOK, "healthy")
 }
