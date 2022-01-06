@@ -48,9 +48,19 @@ func (s *server) create(w http.ResponseWriter, req *http.Request) {
 }
 
 //Handles the retrieval of all the products stored in the database
-func (s *server) getAll(w http.ResponseWriter, req *http.Request) {
+func (s *server) getAll(w http.ResponseWriter, _ *http.Request) {
+	prds, err := s.db.GetAll()
+	if err != nil {
+		logrus.Errorf("db error: %s", err)
+		writeResponse(w, http.StatusInternalServerError, "could not get the list of products")
+	}
 
-	writeResponse(w, http.StatusOK, "ok!")
+	if len(prds) > 0 {
+		body, _ := json.Marshal(&prds)
+		writeJSONResponse(w, http.StatusOK, body)
+	} else {
+		writeResponse(w, http.StatusNotFound, "No products found in database")
+	}
 }
 
 func (s *server) get(w http.ResponseWriter, req *http.Request) {

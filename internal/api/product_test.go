@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -11,14 +13,25 @@ import (
 	"github.com/garciacer87/product-api-challenge/internal/contract"
 )
 
+const errProdTag = "error-product"
+
 type mockDB struct{}
 
 func (mdb *mockDB) Create(prd contract.Product) error {
+	if prd.Name == errProdTag {
+		return fmt.Errorf("mocked error!")
+	}
+
 	return nil
 }
 
 func (mdb *mockDB) GetAll() ([]contract.Product, error) {
-	return nil, nil
+	prds := []contract.Product{
+		{SKU: "FAL-1000001"},
+		{SKU: "FAL-1000002"},
+	}
+
+	return prds, nil
 }
 
 func (mdb *mockDB) Get(sku string) (*contract.Product, error) {
@@ -82,7 +95,11 @@ func TestCreate(t *testing.T) {
 			prd:            contract.Product{SKU: "FAL-1000000", Name: "name", Brand: "brand", Size: 10, Price: 100.00, ImageURL: "http/invalid-url", AltImages: []string{"http://b", "http://c"}},
 			statusExpected: http.StatusBadRequest,
 		},
-		"#6: valid case": {
+		"#6: database error": {
+			prd:            contract.Product{SKU: "FAL-1000000", Name: errProdTag, Brand: "brand", Size: 10, Price: 100.00, ImageURL: "http://a", AltImages: []string{"http://b", "http://c"}},
+			statusExpected: http.StatusInternalServerError,
+		},
+		"#7: valid case": {
 			prd:            contract.Product{SKU: "FAL-1000000", Name: "name", Brand: "brand", Size: 10, Price: 100.00, ImageURL: "http://a", AltImages: []string{"http://b", "http://c"}},
 			statusExpected: http.StatusOK,
 		},
@@ -99,6 +116,45 @@ func TestCreate(t *testing.T) {
 		if resp.StatusCode != tc.statusExpected {
 			t.Errorf("%s Status expected: %v Status got: %v", desc, tc.statusExpected, resp.StatusCode)
 		}
+	}
+
+}
+
+func TestGetAll(t *testing.T) {
+	srv := initTestServer(t)
+
+	defer func(srv Server) {
+		if err := srv.Shutdown(context.Background()); err != nil {
+			t.Fatalf("could not shutdown the test server")
+		}
+	}(srv)
+
+	go srv.ListenAndServe()
+
+	resp, err := http.Get("http://localhost:8081/product")
+	if err != nil {
+		t.Errorf("Error not expected: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status code must be 200")
+	}
+
+	defer resp.Body.Close()
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("could not get response body %v", err)
+	}
+
+	var prds []contract.Product
+	err = json.Unmarshal(respBody, &prds)
+	if err != nil {
+		t.Fatalf("could not get response body %v", err)
+	}
+
+	if len(prds) != 2 {
+		t.Error("there must be 2 products in the slice")
 	}
 
 }

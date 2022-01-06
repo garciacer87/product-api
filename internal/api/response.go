@@ -21,10 +21,11 @@ func writeResponse(w http.ResponseWriter, code int, msg interface{}) {
 		return
 	}
 
-	// Set the content type to json for browsers
-	w.Header().Set("Content-Type", "application/json")
+	writeJSONResponse(w, code, respBody)
+}
 
-	//Add the response code and response body.
+func writeJSONResponse(w http.ResponseWriter, code int, respBody []byte) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(respBody)
 }

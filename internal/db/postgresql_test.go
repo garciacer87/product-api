@@ -69,5 +69,43 @@ func TestCreate(t *testing.T) {
 			t.Fatalf("%s:\n got Error? %v.\n Error expected? %v.\n Error: %v", desc, isErr, tc.errExpected, err)
 		}
 	}
+}
+
+func TestGetAll(t *testing.T) {
+	m := initTestDB(t)
+	defer func() {
+		if err := m.Down(); err != nil {
+			t.Fatalf("could not down migrate %s", err)
+		}
+	}()
+
+	db, err := NewPostgreSQLDB()
+	if err != nil {
+		t.Fatalf("could not init database connection: %s", err)
+	}
+
+	prds, err := db.GetAll()
+	if err != nil {
+		t.Fatal()
+	}
+
+	if len(prds) != 0 {
+		t.Errorf("#1: no products. Product slice must be empty")
+	}
+
+	prd := contract.Product{
+		SKU: "FAL-1000000",
+	}
+
+	db.Create(prd)
+
+	prds, err = db.GetAll()
+	if err != nil {
+		t.Fatal()
+	}
+
+	if len(prds) != 1 {
+		t.Errorf("#2: Must be one product in the slice")
+	}
 
 }

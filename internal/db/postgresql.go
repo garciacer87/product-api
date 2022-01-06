@@ -43,7 +43,7 @@ func (p *PostgreSQLDB) Close() {
 
 //Create inserts a new product
 func (db *PostgreSQLDB) Create(prd contract.Product) error {
-	query := `INSERT INTO public.product(sku, name, brand, size, price, image_url, alt_images) VALUES($1, $2, $3, $4, $5, $6, $7)`
+	query := "INSERT INTO public.product(sku, name, brand, size, price, image_url, alt_images) VALUES($1, $2, $3, $4, $5, $6, $7)"
 
 	_, err := db.pool.Exec(context.Background(), query, prd.SKU, prd.Name, prd.Brand, prd.Size, prd.Price, prd.ImageURL, prd.AltImages)
 	if err != nil {
@@ -54,7 +54,38 @@ func (db *PostgreSQLDB) Create(prd contract.Product) error {
 }
 
 func (db *PostgreSQLDB) GetAll() ([]contract.Product, error) {
-	return nil, nil
+	query := "SELECT sku, name, brand, size, price, image_url, alt_images FROM public.product"
+
+	var (
+		sku, name, brand, image_url string
+		size                        int
+		price                       float64
+		altImages                   []string
+	)
+
+	rows, err := db.pool.Query(context.Background(), query)
+	if err != nil {
+		return nil, fmt.Errorf("could not get products: %v", err)
+	}
+	defer rows.Close()
+
+	prds := make([]contract.Product, 0)
+	for rows.Next() {
+		if err = rows.Scan(&sku, &name, &brand, &size, &price, &image_url, &altImages); err != nil {
+			return nil, fmt.Errorf("could not get products: %v", err)
+		}
+		prds = append(prds, contract.Product{
+			SKU:       sku,
+			Name:      name,
+			Brand:     brand,
+			Size:      size,
+			Price:     price,
+			ImageURL:  image_url,
+			AltImages: altImages,
+		})
+	}
+
+	return prds, nil
 }
 
 func (db *PostgreSQLDB) Get(sku string) (*contract.Product, error) {
