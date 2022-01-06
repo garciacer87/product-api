@@ -1,0 +1,13 @@
+BEGIN TRANSACTION;
+
+	CREATE TABLE public.product (
+		sku VARCHAR(12) PRIMARY KEY NOT NULL,
+		name VARCHAR(50) NOT NULL,
+		brand VARCHAR(50) NOT NULL,
+		size NUMERIC(10),
+		price NUMERIC(10,2) NOT NULL,
+		image_url TEXT NOT NULL,
+		alt_images TEXT[]
+	);
+
+END TRANSACTION;
