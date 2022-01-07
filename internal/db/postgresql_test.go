@@ -107,5 +107,59 @@ func TestGetAll(t *testing.T) {
 	if len(prds) != 1 {
 		t.Errorf("#2: Must be one product in the slice")
 	}
+}
+
+func TestGet(t *testing.T) {
+	m := initTestDB(t)
+	defer func() {
+		if err := m.Down(); err != nil {
+			t.Fatalf("could not down migrate %s", err)
+		}
+	}()
+
+	db, err := NewPostgreSQLDB()
+	if err != nil {
+		t.Fatalf("could not init database connection: %s", err)
+	}
+
+	db.Create(contract.Product{
+		SKU:      "FAL-1000000",
+		Name:     "name",
+		Brand:    "brand",
+		Size:     10,
+		Price:    100.00,
+		ImageURL: "http://aaaa",
+		AltImages: []string{
+			"http://bbbb",
+			"http://cccc",
+		},
+	})
+
+	tests := map[string]struct {
+		sku      string
+		prdFound bool
+	}{
+		"#1: valid case": {
+			sku:      "FAL-1000000",
+			prdFound: true,
+		},
+		"#2: product not found": {
+			sku:      "FAL-123",
+			prdFound: false,
+		},
+	}
+
+	for desc, tc := range tests {
+		prd, _ := db.Get(tc.sku)
+		found := prd != nil
+
+		if tc.prdFound != found {
+			t.Errorf("%s:\n Product expected? %v\n Product found? %v", desc, tc.prdFound, found)
+		}
+
+		if prd != nil && prd.SKU != "FAL-1000000" {
+			t.Errorf("%s\n expected different SKU", desc)
+		}
+	}
 
 }

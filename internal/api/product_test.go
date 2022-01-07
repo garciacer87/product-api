@@ -13,7 +13,10 @@ import (
 	"github.com/garciacer87/product-api-challenge/internal/contract"
 )
 
-const errProdTag = "error-product"
+const (
+	errProdTag      = "error-product"
+	notFoundProdtag = "product-not-found"
+)
 
 type mockDB struct{}
 
@@ -35,7 +38,14 @@ func (mdb *mockDB) GetAll() ([]contract.Product, error) {
 }
 
 func (mdb *mockDB) Get(sku string) (*contract.Product, error) {
-	return nil, nil
+	switch sku {
+	case errProdTag:
+		return nil, fmt.Errorf("mocked error")
+	case notFoundProdtag:
+		return nil, nil
+	default:
+		return &contract.Product{SKU: sku}, nil
+	}
 }
 
 func (mdb *mockDB) Update(prd contract.Product) error {
@@ -156,5 +166,39 @@ func TestGetAll(t *testing.T) {
 	if len(prds) != 2 {
 		t.Error("there must be 2 products in the slice")
 	}
+}
 
+func TestGet(t *testing.T) {
+	srv := initTestServer(t)
+
+	defer func(srv Server) {
+		if err := srv.Shutdown(context.Background()); err != nil {
+			t.Fatalf("could not shutdown the test server")
+		}
+	}(srv)
+
+	go srv.ListenAndServe()
+
+	tests := map[string]struct {
+		sku            string
+		statusExpected int
+	}{
+		"#1: internal server error": {sku: errProdTag, statusExpected: http.StatusInternalServerError},
+		"#2: product not found":     {sku: notFoundProdtag, statusExpected: http.StatusNotFound},
+		"#3: valid case":            {sku: "FAL-1000001", statusExpected: http.StatusOK},
+	}
+
+	for desc, tc := range tests {
+		url := fmt.Sprintf("http://localhost:8081/product/%s", tc.sku)
+		resp, err := http.Get(url)
+
+		if err != nil {
+			t.Fatalf("error not expected")
+		}
+
+		if resp.StatusCode != tc.statusExpected {
+			t.Errorf("%s:\n Status code got: %v\n Status code expected: %v", desc, resp.StatusCode, tc.statusExpected)
+		}
+
+	}
 }

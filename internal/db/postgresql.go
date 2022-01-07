@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/garciacer87/product-api-challenge/internal/contract"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
@@ -89,7 +90,35 @@ func (db *PostgreSQLDB) GetAll() ([]contract.Product, error) {
 }
 
 func (db *PostgreSQLDB) Get(sku string) (*contract.Product, error) {
-	return nil, nil
+	query := "SELECT name, brand, size, price, image_url, alt_images FROM public.product WHERE sku = $1"
+
+	var (
+		name, brand, image_url string
+		size                   int
+		price                  float64
+		altImages              []string
+	)
+
+	row := db.pool.QueryRow(context.Background(), query, sku)
+	err := row.Scan(&name, &brand, &size, &price, &image_url, &altImages)
+	if err != nil {
+		switch err {
+		case pgx.ErrNoRows:
+			return nil, nil
+		default:
+			return nil, fmt.Errorf("could not get product: %v", err)
+		}
+	}
+
+	return &contract.Product{
+		SKU:       sku,
+		Name:      name,
+		Brand:     brand,
+		Size:      size,
+		Price:     price,
+		ImageURL:  image_url,
+		AltImages: altImages,
+	}, nil
 }
 
 func (db *PostgreSQLDB) Update(prd contract.Product) error {

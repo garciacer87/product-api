@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/garciacer87/product-api-challenge/internal/contract"
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,8 +52,9 @@ func (s *server) create(w http.ResponseWriter, req *http.Request) {
 func (s *server) getAll(w http.ResponseWriter, _ *http.Request) {
 	prds, err := s.db.GetAll()
 	if err != nil {
-		logrus.Errorf("db error: %s", err)
+		logrus.Errorf("db error: %v", err)
 		writeResponse(w, http.StatusInternalServerError, "could not get the list of products")
+		return
 	}
 
 	if len(prds) > 0 {
@@ -64,8 +66,27 @@ func (s *server) getAll(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *server) get(w http.ResponseWriter, req *http.Request) {
+	sku, ok := mux.Vars(req)["sku"]
+	if !ok || sku == "" {
+		logrus.Errorf("sku is not present")
+		writeResponse(w, http.StatusBadRequest, "sku is not present")
+		return
+	}
 
-	writeResponse(w, http.StatusOK, "ok!")
+	prd, err := s.db.Get(sku)
+	if err != nil {
+		logrus.Errorf("error retrieving product: %s", err)
+		writeResponse(w, http.StatusInternalServerError, "could not retrieve product")
+		return
+	}
+
+	if prd == nil {
+		writeResponse(w, http.StatusNotFound, "product not found")
+		return
+	}
+
+	body, _ := json.Marshal(&prd)
+	writeJSONResponse(w, http.StatusOK, body)
 }
 
 func (s *server) update(w http.ResponseWriter, req *http.Request) {
