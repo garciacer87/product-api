@@ -125,6 +125,22 @@ func (db *PostgreSQLDB) Update(prd contract.Product) error {
 	return nil
 }
 
-func (db *PostgreSQLDB) Delete(sku string) error {
-	return nil
+func (db *PostgreSQLDB) Delete(sku string) (*bool, error) {
+	prd, err := db.Get(sku)
+	if err != nil {
+		return nil, fmt.Errorf("could not delete product: %v", err)
+	}
+
+	found := prd != nil
+	if !found {
+		return &found, nil
+	}
+
+	query := `DELETE FROM public.product WHERE sku=$1`
+	_, err = db.pool.Exec(context.Background(), query, sku)
+	if err != nil {
+		return &found, fmt.Errorf("could not delete product: %v", err)
+	}
+
+	return &found, nil
 }

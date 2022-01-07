@@ -65,6 +65,7 @@ func (s *server) getAll(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+//Handles the GET method in order to get a product by sku
 func (s *server) get(w http.ResponseWriter, req *http.Request) {
 	sku, ok := mux.Vars(req)["sku"]
 	if !ok || sku == "" {
@@ -89,12 +90,42 @@ func (s *server) get(w http.ResponseWriter, req *http.Request) {
 	writeJSONResponse(w, http.StatusOK, body)
 }
 
+//Handles the PATCH method in order to update a product
 func (s *server) update(w http.ResponseWriter, req *http.Request) {
+	prd := contract.Product{}
+
+	err := json.NewDecoder(req.Body).Decode(&prd)
+	if err != nil {
+		logrus.Errorf("could not decode the body %v", err)
+		writeResponse(w, http.StatusBadRequest, "could not decode the body")
+		return
+	}
 
 	writeResponse(w, http.StatusOK, "ok!")
 }
 
+//Handles the DELETE method in order to delete a product
 func (s *server) delete(w http.ResponseWriter, req *http.Request) {
+	sku, ok := mux.Vars(req)["sku"]
 
-	writeResponse(w, http.StatusOK, "ok!")
+	if !ok || sku == "" {
+		logrus.Errorf("sku is not present")
+		writeResponse(w, http.StatusBadRequest, "sku is not present")
+		return
+	}
+
+	found, err := s.db.Delete(sku)
+	if err != nil {
+		logrus.Errorf("error deleting product: %s", err)
+		writeResponse(w, http.StatusInternalServerError, "could not delete product")
+		return
+	}
+
+	if !*found {
+		logrus.Error("product not found")
+		writeResponse(w, http.StatusNotFound, "product not found")
+		return
+	}
+
+	writeResponse(w, http.StatusOK, "product successfully deleted")
 }

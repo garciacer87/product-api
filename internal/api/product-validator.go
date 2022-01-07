@@ -71,17 +71,26 @@ func newValidator() *productValidator {
 		return t
 	})
 
-	v.RegisterValidation("sku", skuValidator)
-	v.RegisterValidation("notblank", notBlankValidator)
-	v.RegisterValidation("altimages", altImagesValidator)
+	v.RegisterValidation("sku", func(fl validator.FieldLevel) bool {
+		sku := fl.Field().String()
+		return validateSKU(sku)
+	})
+
+	v.RegisterValidation("notblank", func(fl validator.FieldLevel) bool {
+		v := fl.Field().String()
+		return validateBlank(v)
+	})
+
+	v.RegisterValidation("altimages", func(fl validator.FieldLevel) bool {
+		arr := fl.Field().Interface().([]string)
+		return validateAltImages(arr)
+	})
 
 	return &productValidator{v, trans}
 }
 
 //Validates SKU values
-func skuValidator(fl validator.FieldLevel) bool {
-	sku := fl.Field().String()
-
+func validateSKU(sku string) bool {
 	//validates if sku starts with FAL-
 	if !strings.HasPrefix(sku, "FAL-") {
 		return false
@@ -101,15 +110,12 @@ func skuValidator(fl validator.FieldLevel) bool {
 }
 
 //Validates if the value is not blank. e.g.: "   " or ""
-func notBlankValidator(fl validator.FieldLevel) bool {
-	value := fl.Field().String()
-	return strings.TrimSpace(value) != ""
+func validateBlank(v string) bool {
+	return strings.TrimSpace(v) != ""
 }
 
 //Validates if the values of the string slice are valid URL
-func altImagesValidator(fl validator.FieldLevel) bool {
-	arr := fl.Field().Interface().([]string)
-
+func validateAltImages(arr []string) bool {
 	for _, imgURL := range arr {
 		if _, err := url.ParseRequestURI(imgURL); err != nil {
 			return false

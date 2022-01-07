@@ -52,8 +52,17 @@ func (mdb *mockDB) Update(prd contract.Product) error {
 	return nil
 }
 
-func (mdb *mockDB) Delete(sku string) error {
-	return nil
+func (mdb *mockDB) Delete(sku string) (*bool, error) {
+	switch sku {
+	case errProdTag:
+		return nil, fmt.Errorf("mocked error")
+	case notFoundProdtag:
+		found := false
+		return &found, nil
+	default:
+		found := true
+		return &found, nil
+	}
 }
 
 func (mdb *mockDB) Close() {}
@@ -199,6 +208,41 @@ func TestGet(t *testing.T) {
 		if resp.StatusCode != tc.statusExpected {
 			t.Errorf("%s:\n Status code got: %v\n Status code expected: %v", desc, resp.StatusCode, tc.statusExpected)
 		}
+	}
+}
 
+func TestDelete(t *testing.T) {
+	srv := initTestServer(t)
+
+	defer func(srv Server) {
+		if err := srv.Shutdown(context.Background()); err != nil {
+			t.Fatalf("could not shutdown the test server")
+		}
+	}(srv)
+
+	go srv.ListenAndServe()
+
+	tests := map[string]struct {
+		sku            string
+		statusExpected int
+	}{
+		"#1: internal server error": {sku: errProdTag, statusExpected: http.StatusInternalServerError},
+		"#2: product not found":     {sku: notFoundProdtag, statusExpected: http.StatusNotFound},
+		"#3: valid case":            {sku: "FAL-1000001", statusExpected: http.StatusOK},
+	}
+
+	for desc, tc := range tests {
+		url := fmt.Sprintf("http://localhost:8081/product/%s", tc.sku)
+		req, _ := http.NewRequest(http.MethodDelete, url, nil)
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("error not expected")
+		}
+
+		if resp.StatusCode != tc.statusExpected {
+			t.Errorf("%s:\n Status code got: %v\n Status code expected: %v", desc, resp.StatusCode, tc.statusExpected)
+		}
 	}
 }
