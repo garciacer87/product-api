@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/garciacer87/product-api-challenge/internal/contract"
 	"github.com/jackc/pgx/v4"
@@ -11,18 +10,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//PostgreSQLDB implementation of postgresql database
 type PostgreSQLDB struct {
 	pool *pgxpool.Pool
 }
 
 // NewPostgreSQLDB retrieves a new PostgreSQLDB object
-func NewPostgreSQLDB() (Database, error) {
-	databaseURL := os.Getenv("DATABASE_URI")
-	if databaseURL == "" {
-		return nil, fmt.Errorf("DATABASE_URI environment variable not defined")
-	}
-
-	pool, err := pgxpool.Connect(context.Background(), databaseURL)
+func NewPostgreSQLDB(dbURI string) (Database, error) {
+	pool, err := pgxpool.Connect(context.Background(), dbURI)
 	if err != nil {
 		return nil, fmt.Errorf("could not create database connection: %v", err)
 	}
@@ -37,9 +32,9 @@ func NewPostgreSQLDB() (Database, error) {
 }
 
 // Close close connections from the pool
-func (p *PostgreSQLDB) Close() {
+func (db *PostgreSQLDB) Close() {
 	logrus.Info("Closing database connections")
-	p.pool.Close()
+	db.pool.Close()
 }
 
 //Create inserts a new product
@@ -54,14 +49,15 @@ func (db *PostgreSQLDB) Create(prd contract.Product) error {
 	return nil
 }
 
+//GetAll retrieves a slice of the products stored in database
 func (db *PostgreSQLDB) GetAll() ([]contract.Product, error) {
 	query := "SELECT sku, name, brand, size, price, image_url, alt_images FROM public.product"
 
 	var (
-		sku, name, brand, image_url string
-		size                        int
-		price                       float64
-		altImages                   []string
+		sku, name, brand, imageURL string
+		size                       int
+		price                      float64
+		altImages                  []string
 	)
 
 	rows, err := db.pool.Query(context.Background(), query)
@@ -72,7 +68,7 @@ func (db *PostgreSQLDB) GetAll() ([]contract.Product, error) {
 
 	prds := make([]contract.Product, 0)
 	for rows.Next() {
-		if err = rows.Scan(&sku, &name, &brand, &size, &price, &image_url, &altImages); err != nil {
+		if err = rows.Scan(&sku, &name, &brand, &size, &price, &imageURL, &altImages); err != nil {
 			return nil, fmt.Errorf("could not get products: %v", err)
 		}
 		prds = append(prds, contract.Product{
@@ -81,7 +77,7 @@ func (db *PostgreSQLDB) GetAll() ([]contract.Product, error) {
 			Brand:     brand,
 			Size:      size,
 			Price:     price,
-			ImageURL:  image_url,
+			ImageURL:  imageURL,
 			AltImages: altImages,
 		})
 	}
@@ -89,18 +85,19 @@ func (db *PostgreSQLDB) GetAll() ([]contract.Product, error) {
 	return prds, nil
 }
 
+//Get retrieves a product by its SKU
 func (db *PostgreSQLDB) Get(sku string) (*contract.Product, error) {
 	query := "SELECT name, brand, size, price, image_url, alt_images FROM public.product WHERE sku = $1"
 
 	var (
-		name, brand, image_url string
-		size                   int
-		price                  float64
-		altImages              []string
+		name, brand, imageURL string
+		size                  int
+		price                 float64
+		altImages             []string
 	)
 
 	row := db.pool.QueryRow(context.Background(), query, sku)
-	err := row.Scan(&name, &brand, &size, &price, &image_url, &altImages)
+	err := row.Scan(&name, &brand, &size, &price, &imageURL, &altImages)
 	if err != nil {
 		switch err {
 		case pgx.ErrNoRows:
@@ -116,31 +113,30 @@ func (db *PostgreSQLDB) Get(sku string) (*contract.Product, error) {
 		Brand:     brand,
 		Size:      size,
 		Price:     price,
-		ImageURL:  image_url,
+		ImageURL:  imageURL,
 		AltImages: altImages,
 	}, nil
 }
 
+//Update updates a product by its SKU
 func (db *PostgreSQLDB) Update(prd contract.Product) error {
+	query := "UPDATE public.product SET name=$1, brand=$2, size=$3, price=$4, image_url=$5, alt_images=$6 WHERE sku=$7"
+
+	_, err := db.pool.Exec(context.Background(), query, prd.Name, prd.Brand, prd.Size, prd.Price, prd.ImageURL, prd.AltImages, prd.SKU)
+	if err != nil {
+		return fmt.Errorf("could not update product: %v", err)
+	}
+
 	return nil
 }
 
-func (db *PostgreSQLDB) Delete(sku string) (*bool, error) {
-	prd, err := db.Get(sku)
-	if err != nil {
-		return nil, fmt.Errorf("could not delete product: %v", err)
-	}
-
-	found := prd != nil
-	if !found {
-		return &found, nil
-	}
-
+//Delete deletes product by its SKU
+func (db *PostgreSQLDB) Delete(sku string) error {
 	query := `DELETE FROM public.product WHERE sku=$1`
-	_, err = db.pool.Exec(context.Background(), query, sku)
+	_, err := db.pool.Exec(context.Background(), query, sku)
 	if err != nil {
-		return &found, fmt.Errorf("could not delete product: %v", err)
+		return fmt.Errorf("could not delete product: %v", err)
 	}
 
-	return &found, nil
+	return nil
 }

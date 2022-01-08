@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/garciacer87/product-api-challenge/internal/db"
 	"github.com/gorilla/mux"
@@ -24,13 +23,7 @@ type server struct {
 }
 
 //NewServer creates a new server object
-func NewServer(db db.Database) (Server, error) {
-	port, ok := os.LookupEnv("PORT")
-	if !ok || port == "" {
-		port = "8080"
-		logrus.Println("env variable PORT not defined. Using default port 8080")
-	}
-
+func NewServer(port string, db db.Database) Server {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/health", healthHandler).Methods(http.MethodGet)
@@ -41,18 +34,18 @@ func NewServer(db db.Database) (Server, error) {
 	}
 
 	product := r.PathPrefix("/product").Subrouter()
-	product.HandleFunc("", srv.create).Methods(http.MethodPost)
+	product.HandleFunc("", validateProduct(srv.create)).Methods(http.MethodPost)
 	product.HandleFunc("", srv.getAll).Methods(http.MethodGet)
-	product.HandleFunc("/{sku}", srv.get).Methods(http.MethodGet)
-	product.HandleFunc("/{sku}", srv.update).Methods(http.MethodPatch)
-	product.HandleFunc("/{sku}", srv.delete).Methods(http.MethodDelete)
+	product.HandleFunc("/{sku}", validateExistence(db, srv.get)).Methods(http.MethodGet)
+	product.HandleFunc("/{sku}", validateExistence(db, validatePatchFields(db, srv.update))).Methods(http.MethodPatch)
+	product.HandleFunc("/{sku}", validateExistence(db, srv.delete)).Methods(http.MethodDelete)
 
 	srv.httpServer = &http.Server{
 		Addr:    fmt.Sprintf("0.0.0.0:%v", port),
 		Handler: r,
 	}
 
-	return srv, nil
+	return srv
 }
 
 //ListenAndServe starts the http server on the previously configurated port
@@ -64,13 +57,11 @@ func (s *server) ListenAndServe() error {
 //Shutdown the http server
 func (s *server) Shutdown(ctx context.Context) error {
 	logrus.Infof("Shutting down API server")
-	// shutdown server
-	err := s.httpServer.Shutdown(ctx)
 
 	// close DB connection
 	s.db.Close()
 
-	return err
+	return s.httpServer.Shutdown(ctx)
 }
 
 func healthHandler(w http.ResponseWriter, _ *http.Request) {

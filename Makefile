@@ -38,7 +38,24 @@ migrate-drop:
 build:
 	go build -o ./target/product-api ./cmd/api
 
+test:
+	go test -cover ./...
+
+vet:
+	@$(PRINT) "$(BLUE)Vetting the source code...$(NC)\n"
+	go vet ./...
+
+revive:
+	@$(PRINT) "$(BLUE)Running revive...$(NC)\n"
+	revive -formatter friendly ./...
+
+staticcheck:
+	@$(PRINT) "$(BLUE)Running Static Code Analysys...$(NC)\n"
+	staticcheck ./...
+
+check: vet revive staticcheck
+
 run:
 	./target/product-api
 
-.PHONY: build run
+.PHONY: build run check

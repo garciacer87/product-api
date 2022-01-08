@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/garciacer87/product-api-challenge/internal/contract"
@@ -11,10 +10,9 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-func initTestDB(t *testing.T) *migrate.Migrate {
-	dbURI := "postgres://productapi:password@localhost:5432/productapitest"
-	os.Setenv("DATABASE_URI", dbURI)
+var dbURI = "postgres://productapi:password@localhost:5432/productapitest"
 
+func initTestDB(t *testing.T) *migrate.Migrate {
 	m, err := migrate.New(
 		"file://../../sql/postgresql",
 		fmt.Sprintf("%s?sslmode=disable", dbURI),
@@ -30,6 +28,44 @@ func initTestDB(t *testing.T) *migrate.Migrate {
 	return m
 }
 
+func getMockProduct() contract.Product {
+	return contract.Product{
+		SKU:      "FAL-1000000",
+		Name:     "name",
+		Brand:    "brand",
+		Size:     10,
+		Price:    100.00,
+		ImageURL: "http://aaaa",
+		AltImages: []string{
+			"http://bbbb",
+			"http://cccc",
+		},
+	}
+}
+
+func TestNewPostgreSQL(t *testing.T) {
+	tests := map[string]struct {
+		dbURI       string
+		errExpected bool
+	}{
+		"#1: invalid URI": {dbURI: "postgres://wrong:wrong@wrong:5432/wrongdb", errExpected: true},
+		"#2: valid case":  {dbURI: dbURI, errExpected: false},
+	}
+
+	for desc, tc := range tests {
+		db, err := NewPostgreSQLDB(tc.dbURI)
+		isErr := err != nil
+
+		if isErr != tc.errExpected {
+			t.Errorf("%s:\n got Error? %v.\n Error expected? %v.\n Error: %v", desc, isErr, tc.errExpected, err)
+		}
+
+		if db != nil {
+			db.Close()
+		}
+	}
+}
+
 func TestCreate(t *testing.T) {
 	m := initTestDB(t)
 
@@ -39,10 +75,12 @@ func TestCreate(t *testing.T) {
 		}
 	}()
 
-	db, err := NewPostgreSQLDB()
+	db, err := NewPostgreSQLDB(dbURI)
 	if err != nil {
 		t.Fatalf("could not init database connection: %s", err)
 	}
+
+	defer db.Close()
 
 	tests := map[string]struct {
 		prd         contract.Product
@@ -66,7 +104,7 @@ func TestCreate(t *testing.T) {
 		err = db.Create(tc.prd)
 		isErr := err != nil
 		if isErr != tc.errExpected {
-			t.Fatalf("%s:\n got Error? %v.\n Error expected? %v.\n Error: %v", desc, isErr, tc.errExpected, err)
+			t.Errorf("%s:\n got Error? %v.\n Error expected? %v.\n Error: %v", desc, isErr, tc.errExpected, err)
 		}
 	}
 }
@@ -79,10 +117,12 @@ func TestGetAll(t *testing.T) {
 		}
 	}()
 
-	db, err := NewPostgreSQLDB()
+	db, err := NewPostgreSQLDB(dbURI)
 	if err != nil {
 		t.Fatalf("could not init database connection: %s", err)
 	}
+
+	defer db.Close()
 
 	prds, err := db.GetAll()
 	if err != nil {
@@ -93,11 +133,7 @@ func TestGetAll(t *testing.T) {
 		t.Errorf("#1: no products. Product slice must be empty")
 	}
 
-	prd := contract.Product{
-		SKU: "FAL-1000000",
-	}
-
-	db.Create(prd)
+	db.Create(getMockProduct())
 
 	prds, err = db.GetAll()
 	if err != nil {
@@ -117,23 +153,14 @@ func TestGet(t *testing.T) {
 		}
 	}()
 
-	db, err := NewPostgreSQLDB()
+	db, err := NewPostgreSQLDB(dbURI)
 	if err != nil {
 		t.Fatalf("could not init database connection: %s", err)
 	}
 
-	db.Create(contract.Product{
-		SKU:      "FAL-1000000",
-		Name:     "name",
-		Brand:    "brand",
-		Size:     10,
-		Price:    100.00,
-		ImageURL: "http://aaaa",
-		AltImages: []string{
-			"http://bbbb",
-			"http://cccc",
-		},
-	})
+	defer db.Close()
+
+	db.Create(getMockProduct())
 
 	tests := map[string]struct {
 		sku      string
@@ -171,46 +198,62 @@ func TestDelete(t *testing.T) {
 		}
 	}()
 
-	db, err := NewPostgreSQLDB()
+	db, err := NewPostgreSQLDB(dbURI)
 	if err != nil {
 		t.Fatalf("could not init database connection: %s", err)
 	}
 
-	db.Create(contract.Product{
-		SKU:      "FAL-1000000",
-		Name:     "name",
-		Brand:    "brand",
-		Size:     10,
-		Price:    100.00,
-		ImageURL: "http://aaaa",
-		AltImages: []string{
-			"http://bbbb",
-			"http://cccc",
-		},
-	})
+	defer db.Close()
+
+	db.Create(getMockProduct())
 
 	tests := map[string]struct {
-		sku      string
-		prdFound bool
+		sku         string
+		errExpected bool
 	}{
-		"#1: valid case": {
-			sku:      "FAL-1000000",
-			prdFound: true,
-		},
-		"#2: product not found": {
-			sku:      "FAL-123",
-			prdFound: false,
-		},
+		"#1: valid case": {sku: "FAL-1000000", errExpected: false},
 	}
 
 	for desc, tc := range tests {
-		found, err := db.Delete(tc.sku)
-		if err != nil {
-			t.Fatalf("error not expected")
-		}
+		err := db.Delete(tc.sku)
+		isErr := err != nil
 
-		if tc.prdFound != *found {
-			t.Errorf("%s:\n Product deleted? %v\n Product found? %v", desc, tc.prdFound, *found)
+		if isErr != tc.errExpected {
+			t.Errorf("%s:\n Error expected? %v\n Got error? %v", desc, tc.errExpected, isErr)
+		}
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	m := initTestDB(t)
+	defer func() {
+		if err := m.Down(); err != nil {
+			t.Fatalf("could not down migrate %s", err)
+		}
+	}()
+
+	db, err := NewPostgreSQLDB(dbURI)
+	if err != nil {
+		t.Fatalf("could not init database connection: %s", err)
+	}
+
+	defer db.Close()
+
+	db.Create(getMockProduct())
+
+	tests := map[string]struct {
+		patch       contract.Product
+		errExpected bool
+	}{
+		"#1: valid case": {patch: contract.Product{SKU: "FAL-1000000", Size: 10}, errExpected: false},
+	}
+
+	for desc, tc := range tests {
+		err := db.Update(tc.patch)
+		isErr := err != nil
+
+		if isErr != tc.errExpected {
+			t.Errorf("%s:\n Error expected? %v\n Got error? %v", desc, tc.errExpected, isErr)
 		}
 	}
 }

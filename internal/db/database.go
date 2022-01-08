@@ -10,6 +10,6 @@ type Database interface {
 	GetAll() ([]contract.Product, error)
 	Get(sku string) (*contract.Product, error)
 	Update(prd contract.Product) error
-	Delete(sku string) (*bool, error)
+	Delete(sku string) error
 	Close()
 }
