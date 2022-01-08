@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/garciacer87/product-api-challenge/internal/db"
+	"github.com/garciacer87/product-api/internal/db"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 //Server abstraction of a server
@@ -27,6 +28,7 @@ func NewServer(port string, db db.Database) Server {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/health", healthHandler).Methods(http.MethodGet)
+	r.PathPrefix("/swagger/{*}").Handler(httpSwagger.WrapHandler)
 
 	srv := &server{
 		httpPort: port,

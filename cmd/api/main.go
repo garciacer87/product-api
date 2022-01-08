@@ -6,11 +6,19 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/garciacer87/product-api-challenge/internal/api"
-	"github.com/garciacer87/product-api-challenge/internal/db"
+	_ "github.com/garciacer87/product-api/docs"
+
+	"github.com/garciacer87/product-api/internal/api"
+	"github.com/garciacer87/product-api/internal/db"
 	"github.com/sirupsen/logrus"
 )
 
+// @title Product-API
+// @version 1.0.0
+// @description Basic API to manage CRUD operations on products
+// @contact.url https://github.com/garciacer87/product-api
+// @host http://localhost:8080
+// @BasePath /
 func main() {
 	port, ok := os.LookupEnv("PORT")
 	if !ok || port == "" {

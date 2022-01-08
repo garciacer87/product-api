@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"github.com/garciacer87/product-api-challenge/internal/contract"
+	"github.com/garciacer87/product-api/internal/contract"
 )
 
 type mockDB struct {

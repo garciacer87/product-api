@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/garciacer87/product-api-challenge/internal/contract"
+	"github.com/garciacer87/product-api/internal/contract"
 )
 
 //Database abstraction of database connection

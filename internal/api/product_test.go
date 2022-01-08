@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/garciacer87/product-api-challenge/internal/contract"
+	"github.com/garciacer87/product-api/internal/contract"
 )
 
 func TestCreate(t *testing.T) {

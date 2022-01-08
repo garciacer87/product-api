@@ -4,12 +4,20 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/garciacer87/product-api-challenge/internal/contract"
+	"github.com/garciacer87/product-api/internal/contract"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
-//Handles the creation of the product. Decodes and validates the body. If everything is ok, inserts the new product into database and sends back a 200 reply
+// create godoc
+// @Summary Creates a new product
+// @Description Creates a new product
+// @Tags product create
+// @Accept json
+// @Success 200 {object} contract.Response{status=int,message=object}
+// @Failure 400,500 {object} contract.Response{status=int,message=object}
+// @Param product body contract.Product true "product"
+// @Router /product [post]
 func (s *server) create(w http.ResponseWriter, req *http.Request) {
 	prd := contract.Product{}
 	json.NewDecoder(req.Body).Decode(&prd)
@@ -26,7 +34,13 @@ func (s *server) create(w http.ResponseWriter, req *http.Request) {
 	writeResponse(w, http.StatusOK, "product successfully created")
 }
 
-//Handles the retrieval of all the products stored in the database
+// getAll godoc
+// @Summary Retrieves all the products stored in the database
+// @Description Retrieves all the products stored in the database
+// @Tags product list
+// @Success 200 {array} contract.Product
+// @Failure 404,500 {object} contract.Response{status=int,message=object}
+// @Router /product [get]
 func (s *server) getAll(w http.ResponseWriter, _ *http.Request) {
 	prds, err := s.db.GetAll()
 	if err != nil {
@@ -43,7 +57,15 @@ func (s *server) getAll(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-//Handles the GET method in order to get a product by sku
+// get godoc
+// @Summary Get a product by its SKU
+// @Description Get a product by its SKU
+// @Tags product get
+// @Accept json
+// @Success 200 {object} contract.Product
+// @Failure 400,404,500 {object} contract.Response{status=int,message=object}
+// @Param sku path string true "product sku"
+// @Router /product/{sku} [get]
 func (s *server) get(w http.ResponseWriter, req *http.Request) {
 	sku := mux.Vars(req)["sku"]
 
@@ -54,7 +76,16 @@ func (s *server) get(w http.ResponseWriter, req *http.Request) {
 	writeJSONResponse(w, http.StatusOK, body)
 }
 
-//Handles the PATCH method in order to update a product
+// update godoc
+// @Summary Updates an existing product
+// @Description Updates a existing product
+// @Tags product patch
+// @Accept json
+// @Success 200 {object} contract.Response{status=int,message=object}
+// @Failure 400,404,500 {object} contract.Response{status=int,message=object}
+// @Param sku path string true "product sku"
+// @Param patch body contract.Product true "product patch"
+// @Router /product/{sku} [patch]
 func (s *server) update(w http.ResponseWriter, req *http.Request) {
 	var (
 		sku   string           = mux.Vars(req)["sku"]
@@ -77,7 +108,15 @@ func (s *server) update(w http.ResponseWriter, req *http.Request) {
 	writeResponse(w, http.StatusOK, "product successfully updated")
 }
 
-//Handles the DELETE method in order to delete a product
+// delete godoc
+// @Summary Deletes an existing product
+// @Description Deletes a existing product
+// @Tags product delete
+// @Success 200 {object} contract.Response{status=int,message=object}
+// @Failure 400,404,500 {object} contract.Response{status=int,message=object}
+// @Param sku path string true "sku product"
+// @Param patch body contract.Product true "product patch"
+// @Router /product/{sku} [delete]
 func (s *server) delete(w http.ResponseWriter, req *http.Request) {
 	sku := mux.Vars(req)["sku"]
 

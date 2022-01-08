@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/garciacer87/product-api-challenge/internal/contract"
+	"github.com/garciacer87/product-api/internal/contract"
 )
 
 //writeResponse writes reponse headers, code and body.

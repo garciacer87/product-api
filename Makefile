@@ -6,11 +6,11 @@ create-postgres:
 	@$(PRINT) "$(BLUE)Starting PostgreSQL$(NC)\n"
 	docker run --name api-db -e POSTGRES_USER=productapi -e POSTGRES_PASSWORD=password -d -p 5432:5432 postgres:13-alpine
 
-create-db-test:
+create-test-unit-db:
 	@$(PRINT) "$(BLUE)Creating DB for tests$(NC)\n"
 	docker exec api-db createdb --username=productapi --owner=productapi productapitest
 
-drop-db-test:
+drop-test-unit-db:
 	@$(PRINT) "$(BLUE)Dropping tests DB$(NC)\n"
 	docker exec api-db dropdb --username=productapi productapitest
 
@@ -64,5 +64,11 @@ check: vet revive staticcheck
 
 run:
 	./target/product-api
+
+swagger:
+	@$(PRINT) "$(BLUE)Generating swagger docs...$(NC)\n"
+	swag init --parseDependency --parseInternal --parseDepth 1 -d cmd/api,internal/api --generatedTime
+	mkdir -p api
+	mv docs/swagger.* api/
 
 .PHONY: build run check

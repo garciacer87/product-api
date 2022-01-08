@@ -1,0 +1,311 @@
+basePath: /
+definitions:
+  contract.Product:
+    properties:
+      altImages:
+        items:
+          type: string
+        type: array
+      brand:
+        maxLength: 50
+        minLength: 3
+        type: string
+      imageURL:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 3
+        type: string
+      price:
+        maximum: 99999999
+        minimum: 1
+        type: number
+      size:
+        maximum: 9999999999
+        minimum: 0
+        type: integer
+      sku:
+        type: string
+    required:
+    - brand
+    - imageURL
+    - name
+    - price
+    - sku
+    type: object
+  contract.Response:
+    properties:
+      message: {}
+      status:
+        type: integer
+    type: object
+host: http://localhost:8080
+info:
+  contact:
+    url: https://github.com/garciacer87/product-api
+  description: Basic API to manage CRUD operations on products
+  title: Product-API
+  version: 1.0.0
+paths:
+  /product:
+    get:
+      description: Retrieves all the products stored in the database
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/contract.Product'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+      summary: Retrieves all the products stored in the database
+      tags:
+      - product list
+    post:
+      consumes:
+      - application/json
+      description: Creates a new product
+      parameters:
+      - description: product
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/contract.Product'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+      summary: Creates a new product
+      tags:
+      - product create
+  /product/{sku}:
+    delete:
+      description: Deletes a existing product
+      parameters:
+      - description: sku product
+        in: path
+        name: sku
+        required: true
+        type: string
+      - description: product patch
+        in: body
+        name: patch
+        required: true
+        schema:
+          $ref: '#/definitions/contract.Product'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+      summary: Deletes an existing product
+      tags:
+      - product delete
+    get:
+      consumes:
+      - application/json
+      description: Get a product by its SKU
+      parameters:
+      - description: product sku
+        in: path
+        name: sku
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/contract.Product'
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+      summary: Get a product by its SKU
+      tags:
+      - product get
+    patch:
+      consumes:
+      - application/json
+      description: Updates a existing product
+      parameters:
+      - description: product sku
+        in: path
+        name: sku
+        required: true
+        type: string
+      - description: product patch
+        in: body
+        name: patch
+        required: true
+        schema:
+          $ref: '#/definitions/contract.Product'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/contract.Response'
+            - properties:
+                message:
+                  type: object
+                status:
+                  type: integer
+              type: object
+      summary: Updates an existing product
+      tags:
+      - product patch
+swagger: "2.0"

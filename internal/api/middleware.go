@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/garciacer87/product-api-challenge/internal/contract"
-	"github.com/garciacer87/product-api-challenge/internal/db"
+	"github.com/garciacer87/product-api/internal/contract"
+	"github.com/garciacer87/product-api/internal/db"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
