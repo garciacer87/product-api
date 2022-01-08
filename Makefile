@@ -35,8 +35,15 @@ migrate-drop:
 	@$(PRINT) "$(BLUE)Dropping migration...$(NC)\n"
 	migrate -path sql/postgresql/ -database "postgresql://productapi:password@localhost:5432/productapi?sslmode=disable" -verbose drop -f
 
-build:
+go-build:
 	go build -o ./target/product-api ./cmd/api
+
+docker-build:
+	GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o ./target/product-api ./cmd/api
+	docker build -f build/docker/dockerfile -t product-api:1.0.0 .
+
+docker-run:
+	docker run -e PORT=8080 -e DATABASE_URI="postgres://productapi:password@localhost:5432/productapi" -d -p 8080:8080 product-api:1.0.0
 
 test:
 	go test -cover ./...
