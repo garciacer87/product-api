@@ -1,4 +1,4 @@
-FROM ghcr.io/dell-infrastructure/alpine:3
+FROM golang:alpine
 
 COPY target/product-api /usr/local/bin/
 
